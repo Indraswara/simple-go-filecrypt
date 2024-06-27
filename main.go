@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/Indraswara/file-encrypt/filecrypt"
 	"golang.org/x/term"
 )
 
@@ -13,18 +14,17 @@ func main() {
 		printHelp()
 		os.Exit(0)
 	}
-	funciton := os.Args[1]
+	function := os.Args[1]
 
-	switch funciton {
+	switch function {
 	case "help":
 		printHelp()
 	case "encrypt":
 		encryptHandler()
 	case "decrypt":
 		decryptHandler()
-
 	default:
-		fmt.Println("Run encrypt to enxrypt a file or decrypt to decrypt a file. Run help to see all the commands.")
+		fmt.Println("Run 'encrypt' to encrypt a file or 'decrypt' to decrypt a file. Run 'help' to see all the commands.")
 		os.Exit(0)
 	}
 }
@@ -37,7 +37,7 @@ func printHelp() {
 	fmt.Println("Commands:")
 	fmt.Println("\tencrypt - encrypts a file")
 	fmt.Println("\tdecrypt - decrypts a file")
-	fmt.Println("help - prints this help message")
+	fmt.Println("\thelp - prints this help message")
 }
 
 func encryptHandler() {
@@ -47,11 +47,12 @@ func encryptHandler() {
 	}
 	filepath := os.Args[2]
 	if !validateFile(filepath) {
-		panic("File does not exist")
+		fmt.Println("File does not exist")
+		os.Exit(1)
 	}
 	password := getPassword()
-	fmt.Println("Encrypting file")
-	filecrypt.Encrypt(file, password)
+	fmt.Println("\nEncrypting file")
+	filecrypt.Encrypt(filepath, password)
 	fmt.Println("File successfully encrypted")
 }
 
@@ -62,22 +63,34 @@ func decryptHandler() {
 	}
 	filepath := os.Args[2]
 	if !validateFile(filepath) {
-		panic("File does not exist")
+		fmt.Println("File does not exist")
+		os.Exit(1)
 	}
 
-	fmt.Println("Enter Password: ")
-	password, _ := term.ReadPassword(0)
-	fmt.Println("Decrypting file")
-	filecrypt.Decrypt(file, password)
-	fmt.Println("File successfully Decrypted")
+	fmt.Print("Enter Password: ")
+	password, err := term.ReadPassword(int(os.Stdin.Fd()))
+	if err != nil {
+		fmt.Println("Error reading password:", err)
+		os.Exit(1)
+	}
+	fmt.Println("\nDecrypting file")
+	filecrypt.Decrypt(filepath, password)
+	fmt.Println("File successfully decrypted")
 }
 
 func getPassword() []byte {
-
 	fmt.Print("Enter Password: ")
-	password, _ := term.ReadPassword(0)
+	password, err := term.ReadPassword(int(os.Stdin.Fd()))
+	if err != nil {
+		fmt.Println("Error reading password:", err)
+		os.Exit(1)
+	}
 	fmt.Print("\nConfirm Password: ")
-	confirmPassword, _ := term.ReadPassword(0)
+	confirmPassword, err := term.ReadPassword(int(os.Stdin.Fd()))
+	if err != nil {
+		fmt.Println("Error reading password:", err)
+		os.Exit(1)
+	}
 	if !validatePassword(password, confirmPassword) {
 		fmt.Println("Passwords do not match")
 		return getPassword()
@@ -86,10 +99,7 @@ func getPassword() []byte {
 }
 
 func validatePassword(pass1 []byte, pass2 []byte) bool {
-	if !bytes.Equal(pass1, pass2) {
-		return false
-	}
-	return true
+	return bytes.Equal(pass1, pass2)
 }
 
 func validateFile(file string) bool {
